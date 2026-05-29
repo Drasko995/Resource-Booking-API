@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authRouter } from './auth.routes';
+import { bookingRouter } from './booking.routes';
 import { holidayRouter } from './holiday.routes';
 import { resourceRouter } from './resource.routes';
 
@@ -12,3 +13,4 @@ apiRouter.get('/', (_req, res) => {
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/resources', resourceRouter);
 apiRouter.use('/holidays', holidayRouter);
+apiRouter.use('/bookings', bookingRouter);
