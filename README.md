@@ -12,7 +12,7 @@ REST API for managing company resource bookings (meeting rooms, vehicles, parkin
 - Timezone-aware logic: storage in UTC `timestamptz`, predicates evaluated in `COMPANY_TIMEZONE` via Luxon.
 - Background `node-cron` job that auto-rejects stale `PENDING` bookings (>48h old).
 - Swagger / OpenAPI docs served at `/docs`.
-- Jest unit tests on the validator (16 cases covering every rule).
+- Two-tier test coverage: 16 Jest unit tests on the validator + a 40-case HTTP integration script (`npm run e2e`) covering auth, every rule, status transitions, and a 20-parallel-request concurrency proof.
 - Idempotent seed script and TypeORM migrations.
 
 ## Prerequisites
@@ -102,7 +102,19 @@ npm run test:watch # rerun on change
 
 Validator coverage lives in [src/services/booking-validator.service.test.ts](src/services/booking-validator.service.test.ts) and exercises each rule (working hours, weekends, holidays, past-date, end-before-start, single-day window, per-resource overrides) without touching the database — 16 cases covering both happy and unhappy paths.
 
-The unit tests don't need Postgres or the Docker stack to be running. End-to-end behaviour (auth, CRUD, status transitions, overlap under contention) was manually verified during development; converting that into automated Supertest integration tests is the next-step improvement listed in *Tradeoffs* below.
+The unit tests don't need Postgres or the Docker stack to be running.
+
+### End-to-end script
+
+For HTTP-level coverage there's an integration script that drives the running API:
+
+```bash
+npm run e2e
+```
+
+It exercises authentication (login flow, JWT signature, expiry, role-based authorization with hand-crafted tokens), every booking validation rule and per-resource override, status transitions (approve / reject / cancel), pagination + filtering, and a **20-parallel-request concurrency test** that asserts exactly one booking wins and 19 get `409 Conflict` — the empirical proof that the `SELECT ... FOR UPDATE` lock works. Source: [scripts/e2e.mjs](scripts/e2e.mjs).
+
+Prerequisites: the API must be running and seeded (Docker stack up + `migration:run` + `seed`). The script reads `JWT_SECRET` from `.env` to craft expired / wrong-signature tokens; without it those specific cases are skipped.
 
 ## Environment variables
 
@@ -242,6 +254,8 @@ src/
   utils/         HttpError, password, JWT, date/Luxon helpers
   app.ts         Express factory
   server.ts      bootstraps datasource, starts listener and cron jobs
+scripts/
+  e2e.mjs        HTTP-level integration script (npm run e2e)
 tests/
   jest.setup.ts  env defaults for the test runner
 ```
@@ -272,5 +286,5 @@ Conscious choices made during implementation, with the alternative considered:
 - **Booking workflow starts as `PENDING`**, and both `PENDING` and `APPROVED` block new overlaps. Otherwise a user could spam pending requests to a slot they never intend to confirm.
 - **TypeORM migrations + idempotent seed script** over `synchronize: true`. Slower to set up but `synchronize` is a footgun in production — silently drops columns and loses data.
 - **`node-cron`** over `BullMQ` for the background job. One job, one schedule, no need for retries or a Redis dependency.
-- **Validator unit tests only** (16 cases), with end-to-end behaviour manually verified. The validator is the part with the most logic and the highest risk of subtle bugs; HTTP wiring is straightforward and benefits more from Supertest integration tests, which would be the next addition.
+- **Two-tier testing**: 16 Jest unit tests on the validator (pure logic, no DB) plus a 40-case HTTP-level integration script ([scripts/e2e.mjs](scripts/e2e.mjs)) that drives the running API — covering auth, every booking rule, status transitions, and concurrency. The natural next step is porting the script to Supertest + Jest so it runs inside `npm test` and slots into CI.
 - **API runs in the production image with all dependencies installed**, not `--omit=dev`. The migration and seed scripts use the TypeORM CLI through `ts-node`, which is a devDependency. Trading ~50 MB of image size for the convenience of running every npm script with the same `docker compose exec` pattern.

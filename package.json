@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
+    "e2e": "node scripts/e2e.mjs",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/datasource.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/datasource.ts",
