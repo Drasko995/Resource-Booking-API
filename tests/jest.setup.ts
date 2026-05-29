@@ -1,0 +1,16 @@
+process.env.NODE_ENV = 'test';
+process.env.PORT = '3000';
+process.env.POSTGRES_HOST = 'localhost';
+process.env.POSTGRES_PORT = '5432';
+process.env.POSTGRES_USER = 'test';
+process.env.POSTGRES_PASSWORD = 'test';
+process.env.POSTGRES_DB = 'test';
+process.env.JWT_SECRET = 'test-secret-must-be-long-enough';
+process.env.JWT_EXPIRES_IN = '1h';
+process.env.COMPANY_TIMEZONE = 'Europe/Belgrade';
+process.env.WORKING_HOURS_START = '08:00';
+process.env.WORKING_HOURS_END = '17:00';
+process.env.ADMIN_SEED_EMAIL = 'admin@example.com';
+process.env.ADMIN_SEED_PASSWORD = 'ChangeMe123!';
+process.env.USER_SEED_EMAIL = 'user@example.com';
+process.env.USER_SEED_PASSWORD = 'ChangeMe123!';

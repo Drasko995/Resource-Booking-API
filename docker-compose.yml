@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: UTC
+      PGTZ: UTC
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -16,6 +18,33 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build: .
+    container_name: resource-booking-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      COMPANY_TIMEZONE: ${COMPANY_TIMEZONE:-Europe/Belgrade}
+      WORKING_HOURS_START: ${WORKING_HOURS_START:-08:00}
+      WORKING_HOURS_END: ${WORKING_HOURS_END:-17:00}
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@example.com}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-ChangeMe123!}
+      USER_SEED_EMAIL: ${USER_SEED_EMAIL:-user@example.com}
+      USER_SEED_PASSWORD: ${USER_SEED_PASSWORD:-ChangeMe123!}
+    ports:
+      - "${PORT:-3000}:3000"
 
 volumes:
   pgdata:
